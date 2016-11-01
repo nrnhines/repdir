@@ -22,11 +22,11 @@
 # created from an earlier version of the hg repository)
 
 local=$HOME/neuron/hggit
-hgmastersite=https://bitbucket.org/nrnhines
-hgcopysite=ssh://hines@neuron.yale.edu//home/hg/neuron
-gitmastersite=https://github.com/nrnhines
+hgmastersite=ssh://hg@bitbucket.org/nrnhines
+gitmastersite=ssh://git@github.com/nrnhines
+#hgcopysite=ssh://hines@neuron.yale.edu//home/hg/neuron
 
-repositories=iv
+repositories=repdir
 
 mkdir -p $local
 cd $local
@@ -37,23 +37,20 @@ for rep in $repositories ; do
     hg clone $hgmastersite/$rep ${rep}hg
   fi
 
-  if test ! -d ${rep}git ; then
-    git clone $gitmastersite/$rep ${rep}git
-  fi
-
   if test ! -d ${rep}hggit ; then
     git clone hg::$local/${rep}hg ${rep}hggit
     cd ${rep}hggit
     git fetch
-    git config core.notesRef refs/notes/hg
     git checkout -b trunk origin/branches/trunk
-    git remote add git $local/${rep}git
-    git fetch git
-    git checkout -b master git/master
+    git config core.notesRef refs/notes/hg
     cd ..
   fi
 
   exit 0
+
+  if test ! -d ${rep}git ; then
+    git clone $gitmastersite/$rep ${rep}git
+  fi
 
   hgmasterid=`hg identify $hgmastersite/$rep`
   hgcopyid=`hg identify $hgcopysite/$rep`
