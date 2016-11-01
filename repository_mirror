@@ -1,0 +1,77 @@
+#!/bin/bash
+
+#github and bitbucket mirror each other
+# keep neuron.yale.edu up to date with respect to bitbucket
+
+#crontab -e
+#0 */3 * * * /home/hines/neuron/repository_mirror/repository_mirror
+
+# bitbucket and github settings have ssh keys to allow push without
+# password.
+
+# basic idea is to have local git master and local hg trunk that
+# can be pushed/pulled. Those are compared to the remote versions
+# and it is decided if anything needs to be done.
+# If so they are updated to be consistent with respective remotes.
+# and the local hggit created  by 'git clone hg::...' that uses
+# git-remote-hg software is used to make the local hg and git consistent.
+# Finally the local versions are pushed back to the remotes.
+
+# original bootstrapping requires a bitbucket hg repository and a
+# github git repository with the same name (usually empty or manually
+# created from an earlier version of the hg repository)
+
+local=$HOME/neuron/hggit
+hgmastersite=https://bitbucket.org/nrnhines
+hgcopysite=ssh://hines@neuron.yale.edu//home/hg/neuron
+gitmastersite=https://github.com/nrnhines
+
+repositories=iv
+
+mkdir -p $local
+cd $local
+
+for rep in $repositories ; do
+
+  if test ! -d ${rep}hg ; then
+    hg clone $hgmastersite/$rep ${rep}hg
+  fi
+
+  if test ! -d ${rep}git ; then
+    git clone $gitmastersite/$rep ${rep}git
+  fi
+
+  if test ! -d ${rep}hggit ; then
+    git clone hg::$local/${rep}hg ${rep}hggit
+    cd ${rep}hggit
+    git fetch
+    git config core.notesRef refs/notes/hg
+    git checkout -b trunk origin/branches/trunk
+    git remote add git $local/${rep}git
+    git fetch git
+    git checkout -b master git/master
+    cd ..
+  fi
+
+  exit 0
+
+  hgmasterid=`hg identify $hgmastersite/$rep`
+  hgcopyid=`hg identify $hgcopysite/$rep`
+
+  if test "$hgmasterid" = "$hgcopyid" ; then
+    continue
+  fi
+
+  echo $repname $hgmasterid $hgcopyid
+
+  cd $HOME/neuron/nrn
+  hg pull
+  hg push $hgcopysite/$repname
+
+  cd $HOME/neuron/${repname}-git
+  $HOME/soft/fast-export/hg-fast-export.sh -r ../$repname
+  git reset HEAD
+  git checkout -- .
+  git push
+
+done
