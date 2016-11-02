@@ -59,14 +59,21 @@ for rep in $repositories ; do
   # verify validity
   git branch --list -vv
 
-  oldhg=git log branches/trunk --format="%h" -n 1
-  oldgit=git log master --format="%h" -n 1
+  oldhg="`git log branches/trunk --format=\"%h\" -n 1`"
+  oldgit="`git log master --format=\"%h\" -n 1`"
 
-  git fetch origin branches/trunk
-  git fetch git master
+  git checkout branches/trunk
+  git pull
+  git checkout master
+  git pull
 
-  newhg=git log branches/trunk --format="%h" -n 1
-  newgit=git log master --format="%h" -n 1
+  newhg="`git log branches/trunk --format=\"%h\" -n 1`"
+  newgit="`git log master --format=\"%h\" -n 1`"
+
+  echo oldhg $oldhg
+  echo oldgit $oldgit
+  echo newhg $newhg
+  echo newgit $newgit
 
   exit 0
 
