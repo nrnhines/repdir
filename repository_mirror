@@ -33,18 +33,40 @@ cd $local
 
 for rep in $repositories ; do
 
-  if test ! -d ${rep}hg ; then
-    hg clone $hgmastersite/$rep ${rep}hg
-  fi
-
   if test ! -d ${rep}hggit ; then
-    git clone hg::$local/${rep}hg ${rep}hggit
+    git clone hg::$hgmastersite/${rep} ${rep}hggit
     cd ${rep}hggit
     git fetch
-    git checkout -b trunk origin/branches/trunk
+    git checkout -b branches/trunk origin/branches/trunk
     git config core.notesRef refs/notes/hg
+
+    # is the github just initialized with no commits or can
+    # its master be checked out
+    git remote add git $gitmastersite/$rep
+    git fetch git
+    git checkout -b master git/master
+    if test "`git status -b --porcelain`" != "## master...git/master" ; then
+      echo "not on branch master...git/master"
+      echo "$gitmastersite/$rep does not exist or has no commits"
+      echo 1
+    fi
+    echo "on branch master...git/master"
     cd ..
   fi
+
+  cd ${rep}hggit
+
+  # verify validity
+  git branch --list -vv
+
+  oldhg=git log branches/trunk --format="%h" -n 1
+  oldgit=git log master --format="%h" -n 1
+
+  git fetch origin branches/trunk
+  git fetch git master
+
+  newhg=git log branches/trunk --format="%h" -n 1
+  newgit=git log master --format="%h" -n 1
 
   exit 0
 
