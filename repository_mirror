@@ -75,6 +75,13 @@ for rep in $repositories ; do
   echo newhg $newhg
   echo newgit $newgit
 
+  if test "$newgit" = "$newhg" ; then
+    # they are the same, nothing to do
+    continue
+  fi
+
+  
+
   exit 0
 
   if test ! -d ${rep}git ; then
