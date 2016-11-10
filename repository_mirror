@@ -1,7 +1,10 @@
 #!/bin/bash
 
-#github and bitbucket mirror each other
+#github master branch and bitbucket trunk branch mirror each other
 # keep neuron.yale.edu up to date with respect to bitbucket
+
+#list of repositories to mirror.
+repositories=repdir
 
 #crontab -e
 #0 */3 * * * /home/hines/neuron/repository_mirror/repository_mirror
@@ -9,24 +12,28 @@
 # bitbucket and github settings have ssh keys to allow push without
 # password.
 
-# basic idea is to have local git master and local hg trunk that
-# can be pushed/pulled. Those are compared to the remote versions
-# and it is decided if anything needs to be done.
-# If so they are updated to be consistent with respective remotes.
-# and the local hggit created  by 'git clone hg::...' that uses
-# git-remote-hg software is used to make the local hg and git consistent.
-# Finally the local versions are pushed back to the remotes.
+# git-remote-hg software is used to make a git clone of the
+# bitbucket hg repository using 'git clone hg::ssh:...'
+# and track the remote origin/branches/trunk with the local branches/trunk.
+# Also, the git repository on github has its remote git/master branch
+# tracked by the local master branch.
+
+# It is asserted that only one remote repository can be ahead of the local
+# repository. If both are ahead, the merges must be done manually.
+# If bitbucket is ahead of github, then the branches/trunk is (fast forward)
+# merged to master and the latter is pushed to github.
+# If github is ahead of bitbucket, then master is (fast forward) merged to
+# branches/trunk and the latter is pushed to bitbucket.
 
 # original bootstrapping requires a bitbucket hg repository and a
-# github git repository with the same name (usually empty or manually
-# created from an earlier version of the hg repository)
+# github git repository with the same name (manually
+# created from an earlier version of the hg repository). If the git
+# repository is empty, this script will ...
 
 local=$HOME/neuron/hggit
 hgmastersite=ssh://hg@bitbucket.org/nrnhines
 gitmastersite=ssh://git@github.com/nrnhines
 #hgcopysite=ssh://hines@neuron.yale.edu//home/hg/neuron
-
-repositories=repdir
 
 mkdir -p $local
 cd $local
@@ -48,7 +55,7 @@ for rep in $repositories ; do
     if test "`git status -b --porcelain`" != "## master...git/master" ; then
       echo "not on branch master...git/master"
       echo "$gitmastersite/$rep does not exist or has no commits"
-      echo 1
+      exit 1
     fi
     echo "on branch master...git/master"
     cd ..
@@ -95,7 +102,7 @@ for rep in $repositories ; do
     git push git
   else
     echo "Both github and bitbucket for $rep have changes. Resolve manually."
-    exit 0
+    continue
   fi
 
   exit 0
