@@ -80,7 +80,20 @@ for rep in $repositories ; do
     continue
   fi
 
-  
+  #is one derived from the other
+  m2t=`git log -n 1 --format="%h" master..branches/trunk`
+  t2m=`git log -n 1 --format="%h" branches/trunk..master`
+  if test "$m2t" = "" ; then # empty means master ahead of trunk
+    echo "merge master to trunk and push to bitbucket"
+    git checkout branches/trunk
+    git merge master branches/trunk
+    git push origin
+  elif test "$t2m" = "" ; then
+    echo "merge trunk to master and push to github"
+    git checkout master
+    git merge branches/trunk master
+    git push git
+  fi
 
   exit 0
 
