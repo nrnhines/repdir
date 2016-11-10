@@ -4,7 +4,8 @@
 # keep neuron.yale.edu up to date with respect to bitbucket
 
 #list of repositories to mirror.
-repositories=repdir
+repositories="repdir iv nrn"
+repositories="repdir"
 
 #crontab -e
 #0 */3 * * * /home/hines/neuron/repository_mirror/repository_mirror
@@ -12,8 +13,8 @@ repositories=repdir
 # bitbucket and github settings have ssh keys to allow push without
 # password.
 
-# git-remote-hg software is used to make a git clone of the
-# bitbucket hg repository using 'git clone hg::ssh:...'
+# https://github.com/felipec/git-remote-hg software is used to make
+# a git clone of the bitbucket hg repository using 'git clone hg::ssh:...'
 # and track the remote origin/branches/trunk with the local branches/trunk.
 # Also, the git repository on github has its remote git/master branch
 # tracked by the local master branch.
@@ -39,7 +40,7 @@ mkdir -p $local
 cd $local
 
 for rep in $repositories ; do
-
+  cd $local
   if test ! -d ${rep}hggit ; then
     git clone hg::$hgmastersite/${rep} ${rep}hggit
     cd ${rep}hggit
