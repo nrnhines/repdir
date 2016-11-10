@@ -28,7 +28,7 @@ repositories=repdir
 # original bootstrapping requires a bitbucket hg repository and a
 # github git repository with the same name (manually
 # created from an earlier version of the hg repository). If the git
-# repository is empty, this script will ...
+# repository is empty, this script will create a master branch and push
 
 local=$HOME/neuron/hggit
 hgmastersite=ssh://hg@bitbucket.org/nrnhines
@@ -50,11 +50,18 @@ for rep in $repositories ; do
     # is the github just initialized with no commits or can
     # its master be checked out
     git remote add git $gitmastersite/$rep
-    git fetch git
-    git checkout -b master git/master
-    if test "`git status -b --porcelain`" != "## master...git/master" ; then
+    if ! git fetch git ; then
+      echo "$gitmastersite/$rep does not exist. Initialize it on github"
+      exit 1
+    fi
+    if ! git checkout -b master git/master ; then
+      echo "github empty so create master branch and push"
+      git branch master
+      git checkout master
+      git push -u git master
+    elif  test "`git status -b --porcelain`" != "## master...git/master" ; then
       echo "not on branch master...git/master"
-      echo "$gitmastersite/$rep does not exist or has no commits"
+      echo "$gitmastersite/$rep has no commits"
       exit 1
     fi
     echo "on branch master...git/master"
