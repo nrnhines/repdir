@@ -84,15 +84,18 @@ for rep in $repositories ; do
   m2t=`git log -n 1 --format="%h" master..branches/trunk`
   t2m=`git log -n 1 --format="%h" branches/trunk..master`
   if test "$m2t" = "" ; then # empty means master ahead of trunk
-    echo "merge master to trunk and push to bitbucket"
+    echo "merge $rep master to trunk and push to bitbucket"
     git checkout branches/trunk
     git merge master branches/trunk
     git push origin
   elif test "$t2m" = "" ; then
-    echo "merge trunk to master and push to github"
+    echo "merge $rep trunk to master and push to github"
     git checkout master
     git merge branches/trunk master
     git push git
+  else
+    echo "Both github and bitbucket for $rep have changes. Resolve manually."
+    exit 0
   fi
 
   exit 0
