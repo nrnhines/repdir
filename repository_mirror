@@ -114,7 +114,7 @@ for rep in $repositories ; do
     continue
   fi
 
-  exit 0
+  continue
 
   if test ! -d ${rep}git ; then
     git clone $gitmastersite/$rep ${rep}git
