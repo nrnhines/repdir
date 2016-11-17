@@ -5,7 +5,7 @@
 
 #list of repositories to mirror.
 repositories="repdir iv nrn"
-repositories="repdir"
+#repositories="repdir"
 
 #crontab -e
 #0 */3 * * * /home/hines/neuron/repository_mirror/repository_mirror
@@ -34,7 +34,7 @@ repositories="repdir"
 local=$HOME/neuron/hggit
 hgmastersite=ssh://hg@bitbucket.org/nrnhines
 gitmastersite=ssh://git@github.com/nrnhines
-#hgcopysite=ssh://hines@neuron.yale.edu//home/hg/neuron
+hgcopysite=ssh://hines@neuron.yale.edu//home/hg/neuron
 
 mkdir -p $local
 cd $local
@@ -91,52 +91,51 @@ for rep in $repositories ; do
   echo newhg $newhg
   echo newgit $newgit
 
-  if test "$newgit" = "$newhg" ; then
-    # they are the same, nothing to do
+  if test "$newgit" != "$newhg" ; then
+    # they are the different.
+    # pull from the one ahead and push to the one behind.
+    m2t=`git log -n 1 --format="%h" master..branches/trunk`
+    t2m=`git log -n 1 --format="%h" branches/trunk..master`
+    if test "$m2t" = "" ; then # empty means master ahead of trunk
+      echo "merge $rep master to trunk and push to bitbucket"
+      git checkout branches/trunk
+      git merge master branches/trunk
+      git push origin
+    elif test "$t2m" = "" ; then
+      echo "merge $rep trunk to master and push to github"
+      git checkout master
+      git merge branches/trunk master
+      git push git
+    else
+      echo "Both github and bitbucket for $rep have changes. Resolve manually."
+      continue
+    fi
+  fi
+
+  cd $local
+  # update neuron.yale.edu if necessary
+
+  hgcopyid=`hg identify -i $hgcopysite/$rep`
+  err=$?
+  if test "$err" != 0 ; then # if the repository does not exist
+    echo "$hgcopysite/$rep does not exist"
     continue
   fi
 
-  #is one derived from the other
-  m2t=`git log -n 1 --format="%h" master..branches/trunk`
-  t2m=`git log -n 1 --format="%h" branches/trunk..master`
-  if test "$m2t" = "" ; then # empty means master ahead of trunk
-    echo "merge $rep master to trunk and push to bitbucket"
-    git checkout branches/trunk
-    git merge master branches/trunk
-    git push origin
-  elif test "$t2m" = "" ; then
-    echo "merge $rep trunk to master and push to github"
-    git checkout master
-    git merge branches/trunk master
-    git push git
-  else
-    echo "Both github and bitbucket for $rep have changes. Resolve manually."
-    continue
-  fi
-
-  continue
-
-  if test ! -d ${rep}git ; then
-    git clone $gitmastersite/$rep ${rep}git
-  fi
-
-  hgmasterid=`hg identify $hgmastersite/$rep`
-  hgcopyid=`hg identify $hgcopysite/$rep`
-
+  hgmasterid=`hg identify -i $hgmastersite/$rep`
   if test "$hgmasterid" = "$hgcopyid" ; then
     continue
   fi
 
+  if test ! -d "$local/${rep}hg" ; then
+    echo "cloning bitbucket repository into the local ${rep}hg"
+    hg clone $hgmastersite/$rep ${rep}hg
+  fi
+
   echo $repname $hgmasterid $hgcopyid
 
-  cd $HOME/neuron/nrn
-  hg pull
-  hg push $hgcopysite/$repname
-
-  cd $HOME/neuron/${repname}-git
-  $HOME/soft/fast-export/hg-fast-export.sh -r ../$repname
-  git reset HEAD
-  git checkout -- .
-  git push
+  cd $local/${rep}hg
+  hg pull -u
+  hg push $hgcopysite/$rep
 
 done
